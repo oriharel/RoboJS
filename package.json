@@ -10,6 +10,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "battery-level": "^3.0.0",
     "onoff": "^3.2.7"
   }
 }
