@@ -1,9 +1,4 @@
 const gpio = require('onoff').Gpio;
-const batteryLevel = require('battery-level');
-
-batteryLevel().then(level => {
-  console.log(`Battery level is ${level*100}%`);
-});
 
 
 const blue = new gpio(10, "out");
