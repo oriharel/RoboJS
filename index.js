@@ -1,11 +1,23 @@
+const express = require('express');
 const gpio = require('onoff').Gpio;
+const app = express();
+const port = 3000;
+
+app.get('/', (req, res) => {
+  console.log("Got a request on /");
+  res.send('Hello World!');
+});
+
+app.listen(port, () => {
+  console.log(`Robot is listening on port ${port}!`)
+});
 
 
 const blue = new gpio(10, "out");
 const red = new gpio(9, "out");
 const green = new gpio(11, "out");
 
-const sound = new gpio(26, "in", "both");
+const sound = new gpio(17, "in", "both", {debounceTimeout: 300});
 
 sound.watch((err, value)=>{
 
@@ -16,58 +28,35 @@ sound.watch((err, value)=>{
     console.log(`received sound value ${value}`);
     if (value === 1) {
       allLightsOn();
+      setTimeout(allLightsOff, 5000);
     }
     else {
       allLightsOff();
     }
   }
+});
 
-})
-
-// const sleep = (howLong) => {
-//   return new Promise((resolve) => {
-//     setTimeout(resolve, howLong)
-//   })
-// };
-
-
-// const runLights = async () => {
-//   while (true) {
-//     // Red
-//     red.writeSync(1)
-//     await sleep(3000)
-//
-//     // Red and Blue
-//     blue.writeSync(1)
-//     await sleep(1000)
-//     //
-//     // Green
-//     red.writeSync(0)
-//     blue.writeSync(0)
-//     green.writeSync(1)
-//     await sleep(5000)
-//     //
-//     // Blue
-//     green.writeSync(0)
-//     blue.writeSync(1)
-//     await sleep(2000)
-//     //
-//     // Blue off
-//     blue.writeSync(0)
-//   }
-// };
+console.log("sound is configured on pin 17");
+const edge = sound.edge();
+console.log("sound edge is "+edge);
+const accessible = gpio.accessible;
+console.log("gpio is accessible "+accessible);
 
 const allLightsOff = () => {
-  blue.writeSync(0)
-  red.writeSync(0)
-  green.writeSync(0)
+  // console.log("turning the lights off");
+  blue.writeSync(0);
+  red.writeSync(0);
+  green.writeSync(0);
 };
 
 const allLightsOn = () => {
-  blue.writeSync(1)
-  red.writeSync(1)
-  green.writeSync(1)
+  // console.log("turning the lights on");
+  blue.writeSync(1);
+  red.writeSync(1);
+  green.writeSync(1);
 };
+
+// setTimeout(allLightsOn, 1000);
 
 // Handle Ctrl+C exit cleanly
 process.on('SIGINT', () => {
@@ -75,5 +64,4 @@ process.on('SIGINT', () => {
   process.exit();
 });
 
-allLightsOff();
-// runLights();
+// allLightsOff();
