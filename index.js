@@ -19,13 +19,14 @@ const green = new gpio(11, "out");
 
 const sound = new gpio(17, "in", "both", {debounceTimeout: 300});
 
-sound.watch((err, value)=>{
+const leftRearLine = new gpio(27, "in", "both");
 
+const respondWithLight = (err, value)=>{
   if (err) {
-    console.error(`Error reading sound ${err}`);
+    console.error(`Error reading ${err}`);
   }
   else {
-    console.log(`received sound value ${value}`);
+    console.log(`received value ${value}`);
     if (value === 1) {
       allLightsOn();
       setTimeout(allLightsOff, 5000);
@@ -34,6 +35,14 @@ sound.watch((err, value)=>{
       allLightsOff();
     }
   }
+};
+
+sound.watch((err, value)=>{
+  respondWithLight(err, value);
+});
+
+leftRearLine.watch((err, value)=>{
+  respondWithLight(err, value);
 });
 
 console.log("sound is configured on pin 17");
