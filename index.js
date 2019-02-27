@@ -1,7 +1,10 @@
 const express = require('express');
 const gpio = require('onoff').Gpio;
+const PiGpio = require('pigpio').Gpio;
 const app = express();
 const port = 3000;
+const MICROSECDONDS_PER_CM = 1e6/34321;
+
 
 app.get('/', (req, res) => {
   console.log("Got a request on /");
@@ -17,37 +20,68 @@ const blue = new gpio(10, "out");
 const red = new gpio(9, "out");
 const green = new gpio(11, "out");
 
-const sound = new gpio(17, "in", "both", {debounceTimeout: 300});
 
-const leftRearLine = new gpio(27, "in", "both");
+const leftLine = new gpio(27, "in", "both");
+const rightLine = new gpio(17, "in", "both");
 
-const respondWithLight = (err, value)=>{
+
+const motion = new gpio(22, "in", "both");
+
+const trigger = new PiGpio(18, {mode: PiGpio.OUTPUT});
+const echo = new PiGpio(24, {mode: PiGpio.INPUT, alert: true});
+
+trigger.digitalWrite(0); // Make sure trigger is low
+
+const watchHCSR04 = () => {
+  let startTick;
+
+  echo.on('alert', (level, tick) => {
+    if (level == 1) {
+      startTick = tick;
+    } else {
+      const endTick = tick;
+      const diff = (endTick >> 0) - (startTick >> 0); // Unsigned 32 bit arithmetic
+      console.log(diff / 2 / MICROSECDONDS_PER_CM);
+    }
+  });
+};
+
+watchHCSR04();
+
+// Trigger a distance measurement once per second
+setInterval(() => {
+  trigger.trigger(10, 1); // Set trigger high for 10 microseconds
+}, 1000);
+
+const respondWithLight = (err, value, callbackOn, callbackOff)=>{
   if (err) {
     console.error(`Error reading ${err}`);
   }
   else {
     console.log(`received value ${value}`);
     if (value === 1) {
-      allLightsOn();
-      setTimeout(allLightsOff, 5000);
+      callbackOn();
+      setTimeout(callbackOff, 5000);
     }
     else {
-      allLightsOff();
+      callbackOff();
     }
   }
 };
 
-sound.watch((err, value)=>{
-  respondWithLight(err, value);
+leftLine.watch((err, value)=>{
+  respondWithLight(err, value, ()=>red.writeSync(1), allLightsOff);
 });
 
-leftRearLine.watch((err, value)=>{
-  respondWithLight(err, value);
+rightLine.watch((err, value)=>{
+  respondWithLight(err, value, ()=>blue.writeSync(1), allLightsOff);
 });
 
-console.log("sound is configured on pin 17");
-const edge = sound.edge();
-console.log("sound edge is "+edge);
+
+motion.watch((err, value)=>{
+  respondWithLight(err, value, ()=>green.writeSync(1), allLightsOff);
+});
+
 const accessible = gpio.accessible;
 console.log("gpio is accessible "+accessible);
 
